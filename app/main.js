@@ -18,6 +18,8 @@ var grabbedOffset = [0, 0];
 // isGrabbing: Is the player's hand currently in a grabbing pose
 var isGrabbing = false;
 
+// SETUP FOR MAIN GAME LOOP
+controller.use('screenPosition');
 // MAIN GAME LOOP
 // Called every time the Leap provides a new frame of data
 Leap.loop({ hand: function(hand) {
@@ -26,7 +28,7 @@ Leap.loop({ hand: function(hand) {
 
   // TODO: 4.1, Moving the cursor with Leap data
   // Use the hand data to control the cursor's screen position
-  var cursorPosition = [0, 0];
+  var cursorPosition = hand.screenPosition();
   cursor.setScreenPosition(cursorPosition);
 
   // TODO: 4.1

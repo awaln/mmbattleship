@@ -29,7 +29,7 @@ Leap.loop({ hand: function(hand) {
     var cursorPosition = hand.screenPosition();
     // Bit of scooching to get to the bottom row
     cursorPosition[1] *= 1.5;
-    cursorPosition[0] *= .8
+    cursorPosition[0] *= .8;
     cursor.setScreenPosition(cursorPosition);
 
     // Get the tile that the player is currently selecting, and highlight it
@@ -132,19 +132,39 @@ var processSpeech = function(transcript) {
 
     var processed = false;
     if (gameState.get('state') == 'setup') {
-        // TODO: 4.3, Starting the game with speech
         // Detect the 'start' command, and start the game if it was said
         if (userSaid(transcript, ['start'])) {
+            generateSpeech("Starting a new game.");
             gameState.startGame();
             processed = true;
+        }
+
+        // Get pieces with speech
+        else if (userSaid(transcript, ["battleship"])) {
+            playerBoard.get('ships').forEach(function(ship) {
+                if (ship.get('type') == "battleship"){
+                    generateSpeech("Acquiring battleship.");
+                    grabbedShip = ship;
+                    grabbedOffset = [0,0];
+                }
+            });
+        }
+        else if (userSaid(transcript, ["patrol"])) {
+            playerBoard.get('ships').forEach(function(ship) {
+                console.log(ship.get('type'));
+                if (ship.get('type') == "patrolBoat"){
+                    generateSpeech("Acquiring patrol boat.");
+                    grabbedShip = ship;
+                    grabbedOffset = [0,0];
+                }
+            });
         }
     }
 
     else if (gameState.get('state') == 'playing') {
         if (gameState.isPlayerTurn()) {
-            // TODO: 4.4, Player's turn
             // Detect the 'fire' command, and register the shot if it was said
-            if (false) {
+            if (userSaid(transcript, ['fire'])) {
                 registerPlayerShot();
 
                 processed = true;
@@ -152,10 +172,10 @@ var processSpeech = function(transcript) {
         }
 
         else if (gameState.isCpuTurn() && gameState.waitingForPlayer()) {
-            // TODO: 4.5, CPU's turn
-            // Detect the player's response to the CPU's shot: hit, miss, you sunk my ..., game over
+            // CPU's turn
+            // Detect the player's response to the CPU's shot: hit, miss, you sunk my battleship/patrol boat, game over
             // and register the CPU's shot if it was said
-            if (false) {
+            if (userSaid(transcript, ["hit", "miss", "battleship", "patrol", "game"])) {
                 var response = "playerResponse";
                 registerCpuShot(response);
 
@@ -167,11 +187,12 @@ var processSpeech = function(transcript) {
     return processed;
 };
 
-// TODO: 4.4, Player's turn
+// 4.4, Player's turn
 // Generate CPU speech feedback when player takes a shot
 var registerPlayerShot = function() {
-    // TODO: CPU should respond if the shot was off-board
+    // CPU should respond if the shot was off-board
     if (!selectedTile) {
+        generateSpeech("Wow, you couldn't hit the broad side of a barn.");
     }
 
     // If aiming at a tile, register the player's shot
@@ -182,29 +203,35 @@ var registerPlayerShot = function() {
         // Duplicate shot
         if (!result) return;
 
-        // TODO: Generate CPU feedback in three cases
         // Game over
         if (result.isGameOver) {
+            generateSpeech("You sunk my " + result.sunkShip.get('type') + "! You win!");
             gameState.endGame("player");
             return;
         }
         // Sunk ship
         else if (result.sunkShip) {
+            generateSpeech("You sunk my " + result.sunkShip.get('type') + "!");
             var shipName = result.sunkShip.get('type');
         }
         // Hit or miss
         else {
             var isHit = result.shot.get('isHit');
+            if (isHit) {
+                generateSpeech("Hit!");
+            }
+            else {
+                generateSpeech("Miss!")
+            }
         }
 
         if (!result.isGameOver) {
-            // TODO: Uncomment nextTurn to move onto the CPU's turn
-            // nextTurn();
+            nextTurn();
         }
     }
 };
 
-// TODO: 4.5, CPU's turn
+// CPU's turn
 // Generate CPU shot as speech and blinking
 var cpuShot;
 var generateCpuShot = function() {
@@ -214,10 +241,15 @@ var generateCpuShot = function() {
     var rowName = ROWNAMES[tile.row]; // e.g. "A"
     var colName = COLNAMES[tile.col]; // e.g. "5"
 
-    // TODO: Generate speech and visual cues for CPU shot
+    // Generate speech and visual cues for CPU shot
+    generateSpeech("How about ...");
+    blinkTile(tile);
+    generateSpeech("here? " + rowName + ". " + colName + ".");
+
+
 };
 
-// TODO: 4.5, CPU's turn
+// 4.5, CPU's turn
 // Generate CPU speech in response to the player's response
 // E.g. CPU takes shot, then player responds with "hit" ==> CPU could then say "AWESOME!"
 var registerCpuShot = function(playerResponse) {
@@ -228,24 +260,31 @@ var registerCpuShot = function(playerResponse) {
     // NOTE: Here we are using the actual result of the shot, rather than the player's response
     // In 4.6, you may experiment with the CPU's response when the player is not being truthful!
 
-    // TODO: Generate CPU feedback in three cases
+    // Generate CPU feedback in three cases
     // Game over
     if (result.isGameOver) {
+        generateSpeech("I won! Yay!");
         gameState.endGame("cpu");
         return;
     }
     // Sunk ship
     else if (result.sunkShip) {
         var shipName = result.sunkShip.get('type');
+        generateSpeech("Looks like I sunk your " + shipName + ".")
     }
     // Hit or miss
     else {
         var isHit = result.shot.get('isHit');
+        if (isHit) {
+            generateSpeech("Excellent.");
+        }
+        else {
+            generateSpeech("Ugh.")
+        }
     }
 
     if (!result.isGameOver) {
-        // TODO: Uncomment nextTurn to move onto the player's next turn
-        // nextTurn();
+        nextTurn();
     }
 };
 
